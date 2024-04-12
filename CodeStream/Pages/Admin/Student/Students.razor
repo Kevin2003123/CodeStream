@@ -1,0 +1,82 @@
+﻿@page "/admin/students"
+@inject IStudentRepository studentRepository
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigationManager
+@attribute [Authorize(Roles = "admin")]
+
+<h3 class="text-center mt-5">Students</h3>
+
+
+
+<div class="container mb-5">
+    <div class="w-100 d-flex justify-content-end mb-3">
+        <NavLink href="/admin/createStudent" type="button" class="btn btn-info ms-auto"><i class="fa-solid fa-plus"> </i> Add Student </NavLink>
+    </div>
+
+    <table id="adminTable" class="table table-striped" style="width:100%">
+        <thead>
+            <tr>
+                <th class="text-center">Id</th>
+                <th class="text-center">Name</th>
+                <th class="text-center">UserId</th>
+                <th class="text-center">Email</th>
+                <th class="text-center">Phone</th>
+                <th class="text-center">Active</th>
+                <th class="text-center">Accions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var s in student)
+            {
+                <tr>
+                    <td class="text-center">@s.Id</td>
+                    <td class="text-center">@s.Name</td>
+                    <td class="text-center">@s.UserId</td>
+                    <td class="text-center">@s.Email</td>
+                    <td class="text-center">@s.Phone</td>
+                    <td class="text-center"><InputCheckbox role="button" @bind-Value=s.Active @onclick="()=>OnchangeCheckbox(s.Active, s.Id)"></InputCheckbox></td>
+                    <td>
+
+                        <div class="text-center">
+                            <i @onclick="@(()=> navigationManager.NavigateTo($"/admin/updateStudent/{s.Id}"))" type="button" class="fa-solid fa-pen-to-square"></i>
+                        </div>
+
+                    </td>
+
+                </tr>
+            }
+        </tbody>
+
+    </table>
+</div>
+@code {
+    private List<AdminStudentListDTO> student = new List<AdminStudentListDTO>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        student = await studentRepository.GetAdminStudentListDTOs();
+
+
+    }
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+    
+
+        await Task.Delay(100);
+
+        await JSRuntime.InvokeVoidAsync("DataTable");
+
+    }
+
+    private async Task OnchangeCheckbox(bool active, int teacherId)
+    {
+
+        var isUpdated = await studentRepository.UpdateActiveStatus(active, teacherId);
+        student = await studentRepository.GetAdminStudentListDTOs();
+
+    }
+
+
+}

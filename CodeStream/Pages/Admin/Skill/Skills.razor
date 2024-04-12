@@ -1,0 +1,76 @@
+﻿@page "/admin/skills"
+@inject ISkillRepository SkillRepository
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigationManager
+
+@attribute [Authorize(Roles = "admin")]
+<h3 class="text-center mt-5">Skills</h3>
+
+
+
+<div class="container mb-5">
+    <div class="w-100 d-flex justify-content-end mb-3">
+        <NavLink href="/admin/createSkill" type="button" class="btn btn-info ms-auto"><i class="fa-solid fa-plus"> </i> Add Skill </NavLink>
+    </div>
+
+    <table id="adminTable" class="table table-striped" style="width:100%">
+        <thead>
+            <tr>
+                <th class="text-center">Id</th>
+                <th class="text-center">Name</th>
+                <th class="text-center">Active</th>
+                <th class="text-center">Accions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var s in skill)
+            {
+                <tr>
+                    <td class="text-center">@s.Id</td>
+                    <td class="text-center">@s.Name</td>
+                    <td class="text-center"><InputCheckbox role="button" @bind-Value=s.Active @onclick="()=>OnchangeCheckbox(s.Active, s.Id)"></InputCheckbox></td>
+                    <td>
+
+                        <div class="text-center">
+                            <i @onclick="@(()=> navigationManager.NavigateTo($"/admin/updateSkill/{s.Id}"))" type="button" class="fa-solid fa-pen-to-square"></i>
+                        </div>
+
+                    </td>
+
+                </tr>
+            }
+        </tbody>
+
+    </table>
+</div>
+@code {
+    private List<AdminSkillListDTO> skill = new List<AdminSkillListDTO>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        skill = await SkillRepository.GetAdminSkillListDTOs();
+
+
+    }
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+    
+
+        await Task.Delay(100);
+
+        await JSRuntime.InvokeVoidAsync("DataTable");
+
+    }
+
+    private async Task OnchangeCheckbox(bool active, int skillId)
+    {
+
+        var isUpdated = await SkillRepository.UpdateActiveStatus(active, skillId);
+        skill = await SkillRepository.GetAdminSkillListDTOs();
+
+    }
+
+
+}

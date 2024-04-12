@@ -1,0 +1,293 @@
+﻿@page "/myCourses/{Id:int}"
+@inject IJSRuntime JsRuntime
+@inject ICourseRepository courseRepository
+@inject ISkillRepository skillRepository
+@inject IDurationRepository durationRepository
+@inject ILevelRepository levelRepository
+@inject NavigationManager navigationManager
+@inject CartState cartState
+
+
+
+<h3 class="text-center mt-4">Lista de Cursos</h3>
+<div class="container">
+ 
+    
+    <main class="row ">
+        <div class="d-flex justify-content-end col-12">
+            <InputText class="form-control shadow-lg bg-white w-25" role="search" @oninput="OnSearchHandler" @bind-Value="searchTerm" placeholder="Search my courses"></InputText>
+        </div>
+
+        <aside class="col-2 bg-dark-subtle">
+            <div class="mt-2">
+
+
+                <h6>Duracion</h6>
+               
+                @foreach (var duration in courseDurations)
+                {
+                    <div class="form-check">
+                        <input @onchange="(e)=>DurationHandler(duration.Id, e)" class="form-check-input" type="checkbox" value="@duration.Id" id="flexCheckDefault">
+                        <label class="form-check-label" for="flexCheckDefault">
+                            @duration.Name
+                        </label>
+                    </div>
+                }
+            </div>
+
+            <div class="mt-4">
+                <h6>Nivel</h6>
+                @foreach (var level in courseLevels)
+                {
+                    <div class="form-check">
+                        <input @onchange="(e)=>LevelHandler(level.Id, e)" class="form-check-input" type="checkbox" value="@level.Id" id="flexCheckDefault">
+                        <label class="form-check-label" for="flexCheckDefault">
+                            @level.Name
+                        </label>
+                    </div>
+
+                }
+
+            </div>
+
+
+            <div class="mt-4">
+                <h6>Habilidades</h6>
+
+                <!-- Mostrar las primeras cuatro habilidades directamente -->
+                @foreach (var skill in skills.Take(4))
+                {
+                    <div class="form-check">
+                        <input @onchange="(e)=>SkillHandler(skill.Id, e)" class="form-check-input" type="checkbox" value="@skill.Id" id="flexCheckDefault">
+                        <label class="form-check-label" for="flexCheckDefault">
+                            @skill.Name
+                        </label>
+                    </div>
+                }
+
+                <!-- Colapsable -->
+                <div id="additionalSkills" class="collapse">
+                    <!-- Mostrar las habilidades restantes dentro del colapsable -->
+                    @foreach (var skill in skills.Skip(4))
+                    {
+                        <div class="form-check">
+                            <input @onchange="(e)=>SkillHandler(skill.Id, e)" class="form-check-input" type="checkbox" value="@skill.Id" id="flexCheckDefault">
+                            <label class="form-check-label" for="flexCheckDefault">
+                                @skill.Name
+                            </label>
+                        </div>
+                    }
+                </div>
+
+                <!-- Botón Ver Más -->
+                <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#additionalSkills" aria-expanded="false" aria-controls="additionalSkills">
+                    Ver más
+                </button>
+            </div>
+
+
+
+
+
+        </aside>
+
+        <section class="row col m-3" id="CoursesList">
+
+
+            @foreach (var course in courses)
+            {
+                <div class="card shadow-lg p-2 col-4 m-2 " style="width: 20rem;">
+                    <img src="@course.Image" class="card-img-top img-fluid cursor-pointer" alt=@($"CourseImage{course.Id}") @onclick="()=>OnClickCourseHandler(course.Id)">
+                    <div class="card-body">
+                        <h5 class="card-title">@course.Name</h5>
+                        <p class="card-text">@course.Description</p>
+
+                    </div>
+                    <div class="card-footer bg-white fs-6 ">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">@course.Level</li>
+                            <li class="list-group-item">@course.Duration</li>
+                            <li class="list-group-item"><NavLink href="@($"/teacherDetail/{course.TeacherId}")">@course.TeacherName</NavLink></li>
+                            </ul>
+                        </div>
+                    </div>
+
+            }
+            <nav aria-label="Page navigation example" class="row mt-3">
+                <ul class="pagination me-auto col-4 offset-4">
+                    <li @onclick="PrevPageHandler" role="button" class=" cursor-pointer"><a class="page-link">Previous</a></li>
+                    <li class="page-item"><a class="page-link"> @pagination </a></li>
+                    <li @onclick="NextPageHandler" role="button" class=" cursor-pointer"><a class="page-link">Next</a></li>
+                </ul>
+            </nav>
+
+        </section>
+
+    </main>
+
+
+</div>
+
+
+
+
+@code {
+
+    [Parameter]
+    public int Id { get; set; }
+
+
+    private List<CourseLevel> courseLevels { get; set; } = new List<CourseLevel>();
+    private List<CourseDuration> courseDurations { get; set; } = new List<CourseDuration>();
+    private List<Skill> skills { get; set; } = new List<Skill>();
+    private int pagination { get; set; } = 1;
+    private List<int> levelsFilter { get; set; } = new List<int>();
+    private List<int> durationsFilter { get; set; } = new List<int>();
+    private List<int> skillsFilter { get; set; } = new List<int>();
+    private string searchTerm { get; set; } = string.Empty;
+    private int UserId { get; set; } = 0;
+    private List<CourseListDTO> courses { get; set; } = new List<CourseListDTO>();
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        UserId = Id;
+        courseLevels = await levelRepository.GetCourseLevels();
+        courseDurations = await durationRepository.GetCourseDurations();
+        skills = await skillRepository.GetSkills();
+        await UpdateCourseList();
+
+
+        // Acceder al valor del Id del usuario si está autenticado
+
+
+
+
+    }
+
+    private async Task OnSearchHandler(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString()?? "";
+        pagination = 1;
+        skillsFilter.Clear();
+        durationsFilter.Clear();
+        levelsFilter.Clear();
+        courseLevels.Clear();
+        courseDurations.Clear();
+        skills.Clear();
+        courseLevels = await levelRepository.GetCourseLevels();
+        courseDurations = await durationRepository.GetCourseDurations();
+        skills = await skillRepository.GetSkills();
+        
+        await UpdateCourseList();
+    }
+
+
+
+    private async void PrevPageHandler()
+    {
+        if (pagination > 1)
+        {
+            pagination--;
+        }
+        await UpdateCourseList();
+    }
+
+    private async void NextPageHandler()
+    {
+       
+                         // Término de búsqueda por nombre
+
+        var courses = await courseRepository.GetPaginationFilterMyCourses(durationsFilter, levelsFilter, skillsFilter, searchTerm, pagination + 1, 9, UserId);
+        if (courses.Count > 0)
+        {
+            pagination++;
+            await UpdateCourseList();
+        }
+
+
+
+    }
+
+    private async void DurationHandler(int id, ChangeEventArgs e)
+    {
+        var isChecked = e.Value ?? false;
+        var duration = id;
+        if ((bool)isChecked)
+        {
+            durationsFilter.Add(id);
+            
+
+
+        }
+        else
+        {
+            durationsFilter.Remove(id);
+           
+
+        }
+
+        pagination = 1;
+        await UpdateCourseList();
+    }
+
+    private async void LevelHandler(int id, ChangeEventArgs e)
+    {
+        var isChecked = e.Value ?? false;
+        if ((bool)isChecked)
+        {
+            levelsFilter.Add(id);
+           
+
+
+        }
+        else
+        {
+            levelsFilter.Remove(id);
+            
+
+        }
+        pagination = 1;
+        await UpdateCourseList();
+
+    }
+
+    private async void SkillHandler(int id, ChangeEventArgs e)
+    {
+        var isChecked = e.Value ?? false;
+
+        if ((bool)isChecked)
+        {
+           skillsFilter.Add(id);
+            
+
+
+        }
+        else
+        {
+            skillsFilter.Remove(id);
+           
+
+        }
+        pagination = 1;
+        await UpdateCourseList();
+
+    }
+
+
+    private async Task UpdateCourseList()
+    {
+                      
+
+         courses = await courseRepository.GetPaginationFilterMyCourses(durationsFilter, levelsFilter, skillsFilter, searchTerm, pagination, 9, UserId);
+        StateHasChanged();
+    }
+
+    private void OnClickCourseHandler(int Id)
+    {
+       
+        navigationManager.NavigateTo($"/course-detail/{Id}");
+    }
+
+
+}

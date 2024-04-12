@@ -1,0 +1,82 @@
+﻿@page "/admin/updateSkill/{Id:int}"
+
+
+
+@inject ISkillRepository SkillRepository
+@inject IJSRuntime JsRuntime
+@inject NavigationManager navigationManager
+
+
+@attribute [Authorize(Roles = "admin")]
+
+<h3 class="text-center mt-4">Update Skill</h3>
+
+<div class="container mb-5 mt-2 ">
+    <div class="card shadow-lg ">
+
+
+        <div class="card-header fs-4 fw-bold">
+
+            Edit Skill
+        </div>
+
+
+        <div class="card-body">
+
+
+            <EditForm Model="skill" OnValidSubmit="OnSubmit">
+                <DataAnnotationsValidator></DataAnnotationsValidator>
+                <div class="mb-3 ">
+                    <label for="Name" class="form-label">Name</label>
+                    <InputText @bind-Value="skill.Name" type="text" class="form-control" id="Name" placeholder="Skill name"></InputText>
+                    <ValidationMessage class="text-danger form-text" For="() => skill.Name"></ValidationMessage>
+                </div>
+
+
+              
+
+                <button type="submit" class="btn btn-info text-white py-2 form-control fw-bold fs-5 my-1">Update Skill</button>
+            </EditForm>
+
+        </div>
+
+
+
+    </div>
+
+
+</div>
+
+
+@code {
+    private FormSkillDTO skill = new FormSkillDTO();
+    [Parameter]
+    public int Id { get; set; }
+
+
+    protected async override Task OnInitializedAsync()
+    {
+        skill = await SkillRepository.GetSkill(Id);
+    }
+
+    private async Task OnSubmit()
+    {
+
+        var isUpdated = await SkillRepository.UpdateSkill(skill);
+        if (isUpdated)
+        {
+            await JsRuntime.InvokeVoidAsync("showToastr", "success", "Habilidad actualizada Correctamente");
+
+            navigationManager.NavigateTo("/admin/skills");
+
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync("showToastr", "error", "Favor llenar los campos correctamente y no duplicar datos");
+        }
+
+
+    }
+
+
+}

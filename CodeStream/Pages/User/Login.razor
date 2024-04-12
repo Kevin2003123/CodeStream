@@ -1,0 +1,67 @@
+﻿@page "/login"
+@using System.Security.Claims
+@using CodeStream.Authentication
+@inject NavigationManager navigationManager
+@inject IStudentRepository studentRepository
+@inject IJSRuntime JsRuntime
+@inject AuthenticationStateProvider authStateProvider
+@inject IUserRepository userRepository
+<div class="container ">
+
+    <div class="row">
+
+
+        <h3 class="mt-5 col-12 text-center">Inicia sesión en tu cuenta de CodeStream</h3>
+    <EditForm Model="loginDTO" OnSubmit="OnSubmit" class="col-6 offset-3">
+        <DataAnnotationsValidator></DataAnnotationsValidator>
+        <div class="mb-3 mt-3">
+            <label for="exampleInputEmail1" class="form-label">Email address</label>
+            <InputText @bind-Value="loginDTO.Email" type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Correo electrónico"></InputText>
+                <ValidationMessage class="text-danger" For="() =>loginDTO.Email"></ValidationMessage>
+        </div>
+        <div class="mb-3">
+            <label for="exampleInputPassword1" class="form-label">Contraseña</label>
+             <InputText @bind-Value="loginDTO.Password" type="password" class="form-control" id="exampleInputPassword1" placeholder="Contraseña"></InputText>
+                <ValidationMessage class="text-danger" For="() =>loginDTO.Password"></ValidationMessage>
+        </div>
+      
+        <button type="submit" class="btn btn-info text-white py-2 form-control fw-bold fs-5">Iniciar sesión</button>
+    </EditForm>
+    </div>
+
+    <hr/>
+    <p class="text-center">¿No tienes una cuenta? <a role="button" onclick=@(()=> navigationManager.NavigateTo("/register")) class="link">Regístrate</a> </p>
+
+</div>
+
+
+
+@code {
+    private LoginDTO loginDTO = new LoginDTO();
+    private UserSession userSession = new UserSession();
+
+    private async Task OnSubmit()
+    {
+        var isValid = await studentRepository.VerifyStudent(loginDTO);
+
+        if (isValid)
+        {
+
+            userSession = await userRepository.GetUserByEmail(loginDTO.Email);
+            var customAuthStateProvider = (CustomAuthenticationStateProvider)authStateProvider;
+            await customAuthStateProvider.UpdateAuthenticationState(userSession);
+
+            loginDTO = new LoginDTO();
+            await JsRuntime.InvokeVoidAsync("showToastr", "success", "Acceso correcto");
+            navigationManager.NavigateTo("/",true);
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync("showToastr", "error", "Acceso Incorrecto");
+        }
+
+
+    }
+
+
+}

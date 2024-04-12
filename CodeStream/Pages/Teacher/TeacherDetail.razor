@@ -1,0 +1,70 @@
+﻿@page "/teacherDetail/{Id:int}"
+@inject ITeacherRepository teacherRepository
+
+
+<h3 class="text-center mt-5 mb-3">Detalles del Profesor</h3>
+<div class="container">
+    <div class="card shadow-lg">
+        <div class="card-header">
+            <h4 class="">Informacion del Profesor</h4>
+        </div>
+        <div class="card-body">
+            <h5 class="card-title">@teacherDetail.Name</h5>
+            
+            <p class="card-text my-2">@((MarkupString)teacherDetail.Description)</p>
+           
+
+            <h5 class="card-title mb-1">Contacto</h5>
+            <div class="d-flex align-items-center">
+                <p class="my-auto me-3 ">Teléfono: @teacherDetail.Phone</p> 
+                <a href="@($"https://api.whatsapp.com/send?phone={teacherDetail.Phone}")" target="_blank"><i class="fab fa-whatsapp fa-3x" style="color: #25d366;"></i></a>
+            </div>
+            
+            <p class="card-text">Correo electrónico: <a href=@($"mailto:{teacherDetail.Email}")>@teacherDetail.Email</a></p>
+
+            <h5 class="card-title mb-3">Redes Sociales</h5>
+            <div>
+                @if (!string.IsNullOrWhiteSpace(teacherDetail.Facebook))
+                {
+                    <a href="@teacherDetail.Facebook" target="_blank"><i class="fab fa-facebook fa-3x" style="color: #3b5998;"></i></a>
+                    <text>&nbsp;</text>
+                }
+                @if (!string.IsNullOrWhiteSpace(teacherDetail.LinkedIn))
+                {
+                    <a href="@teacherDetail.LinkedIn" target="_blank"><i class="fab fa-linkedin fa-3x" style="color: #0077b5;"></i></a>
+                    <text>&nbsp;</text>
+                }
+                @if (!string.IsNullOrWhiteSpace(teacherDetail.X))
+                {
+                    <a href="@teacherDetail.X" target="_blank"><i class="fa-brands fa-x-twitter fa-3x text-black"></i></a>
+                    <text>&nbsp;</text>
+                }
+                @if (!string.IsNullOrWhiteSpace(teacherDetail.Instagram))
+                {
+                    <a href="@teacherDetail.Instagram" target="_blank"><i class="fab fa-instagram fa-3x" style="color: #e4405f;"></i></a>
+                    <text>&nbsp;</text>
+                }
+                @if (!string.IsNullOrWhiteSpace(teacherDetail.Youtube))
+                {
+                    <a href="@teacherDetail.Youtube" target="_blank"><i class="fab fa-youtube fa-3x" style="color: #ff0000;"></i></a>
+                    <text>&nbsp;</text>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private TeacherDetailDTO teacherDetail = new TeacherDetailDTO();
+
+    protected override async Task OnInitializedAsync()
+    {
+        teacherDetail = await teacherRepository.GetTeacherDetail(Id);
+    }
+}

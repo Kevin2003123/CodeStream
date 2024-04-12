@@ -1,0 +1,111 @@
+﻿@page "/admin/updateStudent/{Id:int}"
+
+
+
+@inject IStudentRepository studentRepository
+@inject IJSRuntime JsRuntime
+@inject NavigationManager navigationManager
+
+@attribute [Authorize(Roles = "admin")]
+
+
+<h3 class="text-center mt-4">Update Student</h3>
+
+<div class="container mb-5 mt-2 ">
+    <div class="card shadow-lg ">
+
+
+        <div class="card-header fs-4 fw-bold">
+
+            Edit Student
+        </div>
+
+
+        <div class="card-body">
+
+
+            <EditForm Model="student" OnValidSubmit="OnSubmit">
+                <DataAnnotationsValidator></DataAnnotationsValidator>
+                <div class="mb-3 ">
+                    <label for="Name" class="form-label">Name</label>
+                    <InputText @bind-Value="student.Name" type="text" class="form-control" id="Name" placeholder="Student name"></InputText>
+                    <ValidationMessage class="text-danger form-text" For="() => student.Name"></ValidationMessage>
+                </div>
+
+
+                <div class="mb-3 ">
+                    <label for="Email" class="form-label">Email</label>
+                    <InputText type="email" @bind-Value="student.Email" class="form-control" id="Email" placeholder="example@example.com"></InputText>
+
+                    <ValidationMessage class="text-danger form-text" For="() => student.Email"></ValidationMessage>
+                </div>
+
+                <div class="mb-3 ">
+                    <label for="Phone" class="form-label">Phone</label>
+                    <InputText type="tel" @bind-Value="student.Phone" class="form-control" id="Phone" placeholder="0000000000"></InputText>
+
+                    <ValidationMessage class="text-danger form-text" For="() => student.Phone"></ValidationMessage>
+                </div>
+
+          
+
+                <div class="mb-3">
+                    <label for="Password" class="form-label">Password</label>
+                    <InputText type="password" @bind-Value="student.Password" class="form-control" id="Password" @oninput="()=>OnChangePassword()"></InputText>
+                    <ValidationMessage class="text-danger form-text" For="() => student.Password"></ValidationMessage>
+                </div>
+
+
+                <button type="submit" class="btn btn-info text-white py-2 form-control fw-bold fs-5 my-1">Update Student</button>
+            </EditForm>
+
+        </div>
+
+
+
+    </div>
+
+
+</div>
+
+
+@code {
+    private FormStudentDTO student = new FormStudentDTO();
+
+    [Parameter]
+    public int Id { get; set; }
+
+    public bool passwordChange { get; set; } = false;
+
+    protected async override Task OnInitializedAsync()
+    {
+        student = await studentRepository.GetStudent(Id);
+    }
+
+    private async Task OnSubmit()
+    {
+
+        var isUpdated = await studentRepository.UpdateStudent(student, passwordChange);
+
+        if (isUpdated)
+        {
+            await JsRuntime.InvokeVoidAsync("showToastr", "success", "Estudiante Actualizado Correctamente");
+
+            navigationManager.NavigateTo("/admin/students");
+
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync("showToastr", "error", "Favor llenar los campos correctamente y no duplicar datos");
+        }
+
+
+    }
+
+    private void OnChangePassword()
+    {
+        passwordChange = true;
+    }
+
+
+}

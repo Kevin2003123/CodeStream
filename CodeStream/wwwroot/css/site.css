@@ -1,0 +1,16 @@
+
+
+html, body {
+    height: 100%;
+}
+
+.page-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Asegúrate de que el footer siempre esté al final */
+footer {
+    margin-top: auto;
+}

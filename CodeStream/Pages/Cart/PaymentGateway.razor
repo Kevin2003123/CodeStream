@@ -1,0 +1,230 @@
+﻿@page "/checkout"
+@inject ICountryRepository countryRepository
+@inject CartState cartState
+@inject CourseCartDtoState courseCartDtoState
+@inject NavigationManager navigationManager
+@inject IJSRuntime JsRuntime
+@inject CourseCartDtoState courseCartDtoState
+@inject ICourseRepository courseRepository
+@inject IPaymentRepository paymentRepository
+@inject AuthenticationStateProvider authStateProvider
+@implements IDisposable
+
+@attribute [Authorize(Roles = "student")]
+ <EditForm Model="payment" OnValidSubmit="Onsubmit">
+
+    <DataAnnotationsValidator></DataAnnotationsValidator>
+<div class="container mt-4">
+<div class="row ">
+
+    <div class="col">
+    <h3>Pagar</h3>
+
+    <h4 class="mt-4">Direccion de facturacion</h4>
+   
+    <div class="row">
+        <span class="col">País</span> <span class="col text-end form-text">Necesario</span>
+    </div>
+    
+    <InputSelect class="form-select" @bind-Value="payment.CountryId" >
+        <option value="0" selected>Selecciona...</option>
+        @foreach (var country in countries)
+        {
+            <option value="@country.Id">@country.Name</option>
+            
+        }
+    </InputSelect>
+    <ValidationMessage class="text-danger" For="() =>payment.CountryId"></ValidationMessage>
+
+
+    <h4 class="mt-3">Método de pago</h4>
+
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <i class="fa-solid fa-credit-card"></i>  <span>Tarjeta de crédito/débito</span>  <i class="fa-brands fa-cc-mastercard"></i> <i class="fa-brands fa-cc-visa"></i>
+            </div>
+            
+        </div>
+        <div class="card-body">
+            <div class="mb-3 mt-3">
+                <label for="CardName" class="form-label">Nombre en la tarjeta</label>
+                <InputText @bind-Value="payment.CardName" class="form-control" id="CardName" placeholder="Nombre en la tarjeta"></InputText>
+                <ValidationMessage class="text-danger" For="() =>payment.CardName"></ValidationMessage>
+            </div>
+            <div class="mb-3">
+                <label for="CardNumber" class="form-label">
+                    Número de tarjeta
+                </label>
+                <InputText @bind-Value="payment.CardNumber" class="form-control" id="CardNumber" placeholder="1234 5678 9012 3456"></InputText>
+                <ValidationMessage class="text-danger" For="() =>payment.CardNumber"></ValidationMessage>
+            </div>
+
+            <div class="mb-3">
+                <label for="expDate" class="form-label">
+                    Fecha de vencimiento
+                </label>
+                <InputText @bind-Value="payment.ExpirationDate" class="form-control" id="expDate" placeholder="MM/AA"></InputText>
+                <ValidationMessage class="text-danger" For="() =>payment.ExpirationDate"></ValidationMessage>
+            </div>
+
+
+            <div class="mb-3">
+                <label for="cvc" class="form-label">
+                    CVC/CVV
+                </label>
+                <InputText @bind-Value="payment.CVC" class="form-control" id="cvc" placeholder="CVC"></InputText>
+                <ValidationMessage class="text-danger" For="() =>payment.CVC"></ValidationMessage>
+            </div>
+        </div>
+    </div>
+    
+
+    <h4 class="mt-5 mb-4">Detalle del pedido</h4>
+    <div class="">
+        @foreach (var course in courseCartDtoState.GetCart())
+        {
+           
+               <div class="row my-3">
+                   <div class="col-2"><img class="img-fluid" width="50" height="50" src="@course.Image" /></div>
+                   <p class="col-7">@course.Name</p>
+                   <p class="col-3">@course.Price.ToString("#,0.00")&nbsp;DOP$</p>
+               </div>
+
+          
+
+        }
+
+    </div>
+ 
+    </div>
+
+    <div class="col">
+        <p class="fs-4 "><strong>Resumen:</strong></p>
+            <div class="row fs-5">
+                <span class="col  ">Precio original: </span>
+                <span class="col text-end">@(courseCartDtoState.GetCart()?.Sum(course => course.Price).ToString("#,0.00"))&nbsp;DOP$</span>
+            </div>
+
+            <div class="row fs-5">
+                <span class="col  ">Descuento: </span>
+                <span class="col text-end">@(courseCartDtoState.GetCart().Count > 1 ? (courseCartDtoState.GetCart()?.Sum(course => course.Price) * 0.05m)?.ToString("#,0.00") : 0.00m)&nbsp;DOP$</span>
+            </div>
+        <hr />
+        <div class="row fs-3">
+                <strong class="col  ">Total: </strong> 
+                <strong class=" col text-end">@(courseCartDtoState.GetCart().Count() > 1 ? (courseCartDtoState.GetCart()?.Sum(course => course.Price) * (1 - 0.05m))?.ToString("#,0.00") : (courseCartDtoState.GetCart()?.Sum(course => course.Price))?.ToString("#,0.00"))&nbsp;DOP$</strong>
+        </div>
+       
+        <button type="submit" class="btn btn-info form-control text-white fs-5 mt-4"><strong>Completar pago</strong></button>
+      
+    </div>
+
+
+</div>
+
+</div>
+</EditForm>
+
+
+@code {
+    private List<Country> countries = new List<Country>();
+    private List<CourseCartDTO> courseCarts = new List<CourseCartDTO>();
+    private Payment payment = new Payment();
+    private CreatePaymentDTO createPaymentDTO = new CreatePaymentDTO();
+    private List<int> courses = new List<int>();
+
+
+    protected async override Task OnInitializedAsync()
+    {
+        courseCartDtoState.StateChangeHandler += OnCourseCartDtoStateChange!;
+        countries = await countryRepository.GetAll();
+
+    }
+
+    private async Task  Onsubmit()
+    {
+
+
+
+        var authState = await authStateProvider.GetAuthenticationStateAsync();
+
+        var user =  authState.User;
+
+
+        if (user != null && user.Identity!.IsAuthenticated)
+        {
+
+
+            var userIdClaim = user.FindFirst(ClaimTypes.Sid);
+            if (userIdClaim != null)
+            {
+                var userId = userIdClaim.Value;
+
+                createPaymentDTO.UserId = int.Parse(userId);
+                createPaymentDTO.TotalPrice = courseCartDtoState.GetCart().Count() > 1 ? (courseCartDtoState.GetCart().Sum(course => course.Price) * (1 - 0.05m)) : (courseCartDtoState.GetCart().Sum(course => course.Price));
+                createPaymentDTO.CountryId = payment.CountryId;
+
+                foreach (var course in courseCartDtoState.GetCart())
+                {
+                    courses.Add(course.Id);
+
+                }
+
+                if(courses.Count()> 0)
+                {
+                    var paymentId = await paymentRepository.CreatePayment(createPaymentDTO, courses);
+
+                    navigationManager.NavigateTo($"/invoice/{paymentId}");
+                }
+
+
+
+
+            }
+
+                    
+                {
+            }
+            
+        }
+
+
+    }
+
+    private async Task UpdateCart()
+    {
+        var cart = await JsRuntime.InvokeAsync<string>("localStorage.getItem", "cart") ?? null;
+
+        if (cart != null)
+        {
+            cartState.cart = JsonConvert.DeserializeObject<List<int>>(cart) ?? new List<int>();
+            cartState.SetCart();
+            courseCartDtoState.cart = await courseRepository.GetCourseCarts(cartState.GetCart());
+            courseCartDtoState.SetCart();
+        }
+    }
+
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await UpdateCart();
+
+        }
+
+    }
+
+    void OnCourseCartDtoStateChange(object sender, EventArgs e) => StateHasChanged();
+
+    void IDisposable.Dispose()
+    {
+        courseCartDtoState.StateChangeHandler -= OnCourseCartDtoStateChange!;
+
+    }
+}
+
+
+
+}

@@ -1,0 +1,66 @@
+﻿@page "/register"
+@inject NavigationManager navigationManager
+@inject IStudentRepository studentRepository
+@inject IJSRuntime JsRuntime
+
+<div class="container">
+
+    <div class="row">
+
+        <h3 class="mt-5 col-12 text-center">Regístrate y comienza a aprender.</h3>
+        <EditForm Model="registerStudentDTO" OnValidSubmit="OnSubmitHandler" class="col-6 offset-3 pt-5">
+            <DataAnnotationsValidator></DataAnnotationsValidator>
+            <div class="mb-3 ">
+                <label for="exampleInputName" class="form-label">Nombre completo</label>
+                <InputText @bind-Value="registerStudentDTO.Name" type="text" class="form-control" id="exampleInputName" placeholder="Nombre completo"></InputText>
+                <ValidationMessage class="text-danger" For="() => registerStudentDTO.Name"></ValidationMessage>
+            </div>
+            <div class="mb-3">
+                <label for="exampleInputEmail1" class="form-label">Email address</label>
+                <InputText @bind-Value="registerStudentDTO.Email" type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Correo electrónico"></InputText>
+                <ValidationMessage class="text-danger" For="() => registerStudentDTO.Email"></ValidationMessage>
+            </div>
+
+
+            <div class="mb-3">
+                <label for="exampleInputPassword1" class="form-label">Contraseña</label>
+                <InputText @bind-Value="registerStudentDTO.Password" type="password" class="form-control" id="exampleInputPassword1" placeholder="Contraseña"></InputText>
+                <ValidationMessage class="text-danger" For="() => registerStudentDTO.Password"></ValidationMessage>
+            </div>
+
+            <div class="mb-3 ">
+                <label for="exampleInputTel" class="form-label">Telefono</label>
+                <InputText @bind-Value="registerStudentDTO.Phone" type="tel" class="form-control" id="exampleInputTel" placeholder="Numero de telefono"></InputText>
+                <ValidationMessage class="text-danger" For="() => registerStudentDTO.Phone"></ValidationMessage>
+            </div>
+
+            <button type="submit" class="btn btn-info text-white py-2 form-control fw-bold fs-5">Regístrate</button>
+        </EditForm>
+    </div>
+
+    <hr />
+    <p class="text-center">¿Ya tienes una cuenta? <a onclick=@(()=> navigationManager.NavigateTo("/login")) role="button" class="link">Inicia sesión </a> </p>
+
+</div>
+
+
+
+
+@code {
+    private RegisterStudentDTO registerStudentDTO = new RegisterStudentDTO();
+
+    private async Task OnSubmitHandler()
+    {
+        var result = await studentRepository.InsertStudent(registerStudentDTO);
+
+        if (result)
+        {
+            await JsRuntime.InvokeVoidAsync("showToastr","success", "Registrado correctamente");
+            registerStudentDTO = new RegisterStudentDTO();
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync("showToastr","error", "Error al registrarse revisar las casillas");
+        }
+    }
+}

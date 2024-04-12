@@ -1,0 +1,76 @@
+﻿@page "/admin/levels"
+@inject ILevelRepository levelRepository
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigationManager
+@attribute [Authorize(Roles = "admin")]
+
+<h3 class="text-center mt-5">Levels</h3>
+
+
+
+<div class="container mb-5">
+    <div class="w-100 d-flex justify-content-end mb-3">
+        <NavLink href="/admin/createLevel" type="button" class="btn btn-info ms-auto"><i class="fa-solid fa-plus"> </i> Add Level</NavLink>
+    </div>
+
+    <table id="adminTable" class="table table-striped" style="width:100%">
+        <thead>
+            <tr>
+                <th class="text-center">Id</th>
+                <th class="text-center">Name</th>
+                <th class="text-center">Active</th>
+                <th class="text-center">Accions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var l in level)
+            {
+                <tr>
+                    <td class="text-center">@l.Id</td>
+                    <td class="text-center">@l.Name</td>
+                    <td class="text-center"><InputCheckbox role="button" @bind-Value=l.Active @onclick="()=>OnchangeCheckbox(l.Active, l.Id)"></InputCheckbox></td>
+                    <td>
+
+                        <div class="text-center">
+                            <i @onclick="@(()=> navigationManager.NavigateTo($"/admin/updateLevel/{l.Id}"))" type="button" class="fa-solid fa-pen-to-square"></i>
+                        </div>
+
+                    </td>
+
+                </tr>
+            }
+        </tbody>
+
+    </table>
+</div>
+@code {
+    private List<AdminLevelListDTO> level = new List<AdminLevelListDTO>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        level = await levelRepository.GetAdminLevelListDTOs();
+
+
+    }
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+    
+
+        await Task.Delay(100);
+
+        await JSRuntime.InvokeVoidAsync("DataTable");
+
+    }
+
+    private async Task OnchangeCheckbox(bool active, int levelId)
+    {
+
+        var isUpdated = await levelRepository.UpdateActiveStatus(active, levelId);
+        level = await levelRepository.GetAdminLevelListDTOs();
+
+    }
+
+
+}

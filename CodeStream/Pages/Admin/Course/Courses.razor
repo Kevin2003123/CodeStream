@@ -1,0 +1,93 @@
+﻿@page "/admin/courses"
+@inject ICourseRepository courseRepository
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigationManager
+
+
+
+@attribute [Authorize(Roles = "admin")]
+<h3 class="text-center mt-3">Courses</h3>
+
+<div class="container mb-5">
+    <div class="w-100 d-flex justify-content-end mb-3">
+        <NavLink href="/admin/createCourse" type="button"  class="btn btn-info ms-auto"><i class="fa-solid fa-plus"> </i> Add Course </NavLink>
+    </div>
+   
+<table id="adminTable" class="table table-striped text-center" style="width:100%">
+    <thead class="text-center">
+        <tr class="text-center">
+                <th class="text-center">Id</th>
+                <th class="text-center">Image</th>
+                <th class="text-center">Name</th>
+                <th class="text-center">Price</th>
+                <th class="text-center">Duration</th>
+                <th class="text-center">Teacher</th>
+                <th class="text-center">Level</th>
+                <th class="text-center">Active</th>
+                <th class="text-center">Accions</th>
+        </tr>
+    </thead>
+
+    <tbody>
+       @foreach (var course in courses)
+        {
+            <tr>
+                    <td class="text-center">@course.Id</td>
+                    <td class="text-center"><img class="img-fluid" src="@course.Image" width="50" /></td>
+                    <td class="text-center">@course.Name</td>
+                    <td class="text-center">@course.Price.ToString("#,0.00")</td>
+                    <td class="text-center">@course.Duration</td>
+                    <td class="text-center">@course.TeacherName</td>
+                    <td class="text-center">@course.Level</td>
+                    <td lass="text-center"><InputCheckbox role="button" @bind-Value=course.Active @onclick="()=>OnchangeCheckbox(course.Active, course.Id)"></InputCheckbox></td>
+                <td>
+                    
+                        <div class="text-center">
+                            <i @onclick="@(()=> navigationManager.NavigateTo($"/course-detail/{course.Id}"))" type="button" class="fa-solid fa-magnifying-glass"></i>
+                            &nbsp;
+                            <i @onclick="@(()=> navigationManager.NavigateTo($"/admin/updateCourse/{course.Id}"))" type="button" class="fa-solid fa-pen-to-square"></i>
+                    </div>
+
+                </td>
+            
+            </tr>
+        }
+    </tbody>
+
+</table>
+</div>
+@code {
+    private List<AdminCourseListDTO> courses = new List<AdminCourseListDTO>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        courses = await courseRepository.GetAdminCourses();
+
+
+    }
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+
+
+        await Task.Delay(100);
+
+        await JSRuntime.InvokeVoidAsync("DataTable");
+
+    }
+
+    private async Task OnchangeCheckbox(bool active, int courseId)
+    {
+
+        var updatedCourse =  await courseRepository.UpdateCourseActiveStatus(active, courseId);
+
+        if (updatedCourse)
+        {
+            courses = await courseRepository.GetAdminCourses();
+        }
+       
+        
+    }
+
+
+}

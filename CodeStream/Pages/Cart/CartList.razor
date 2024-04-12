@@ -1,0 +1,148 @@
+﻿@page "/cart"
+@using Newtonsoft.Json
+@inject IJSRuntime JsRuntime
+@inject ICourseRepository courseRepository
+@inject CartState cartState
+@inject CourseCartDtoState courseCartDtoState
+@inject NavigationManager navigationManager
+@implements IDisposable
+
+
+
+<div class="container">
+    <div class="row">
+
+        <h3 class="text-center mt-4 ">Carrito</h3>
+<div class="col-8">
+            <strong>@courseCartDtoState.GetCart().Count() cursos en el carrito</strong>
+            <hr class="mt-2 mb-1"/>
+            <ul class="list-group list-group-flush">
+                
+           
+            @foreach (var item in courseCartDtoState.GetCart()){
+            <li class="list-group-item">
+                <div class="row">
+
+                    <div class="col">
+                        <img role="button" onclick=@(()=>navigationManager.NavigateTo($"course-detail/{item.Id}")) src="@item.Image" class="img-fluid" />
+                    </div>
+
+                    <div class="col">
+                        <h5>@item.Name</h5>
+                        <p>@($"Por {item.TeacherName}")</p>
+                    
+                        <div class="d-flex align-items-center">
+                            <i class="fa-solid fa-chevron-right me-1"></i>
+                            <span>@item.Duration &nbsp;</span>
+                            <i class="fa-solid fa-chevron-right me-1"></i>
+                            <span>@item.Level </span>
+
+                        </div>
+
+                                <a role="button" @onclick="()=>OnClickDeleteHandler(item.Id)" class="link-info mt-5">Eliminar</a>
+                    </div>
+
+                            <p class="col d-flex">
+                                <strong class="fs-4">@item.Price.ToString("#,0.00")&nbsp;DOP$</strong>
+                                <i class="fa-solid fa-tag ms-1 mt-3"></i>
+                            </p>
+
+                  
+
+                </div>
+
+                
+
+
+            </li>
+                
+            } 
+            
+                </ul>
+
+               
+
+
+    </div>
+
+
+    <div class="col">
+            <p class="fs-4 "><strong>Total:</strong></p>
+            <div class="row fs-5">
+                <span class="col  ">Precio original: </span>
+                <span class="col text-end">@(courseCartDtoState.GetCart()?.Sum(course => course.Price).ToString("#,0.00"))&nbsp;DOP$</span>
+            </div>
+
+            <div class="row fs-5">
+                <span class="col  ">Descuento: </span>
+                <span class="col text-end">@(courseCartDtoState.GetCart().Count > 1?(courseCartDtoState.GetCart()?.Sum(course => course.Price) * 0.05m)?.ToString("#,0.00"): 0.00)&nbsp;DOP$</span>
+            </div>
+            <strong class="fs-1">@(courseCartDtoState.GetCart().Count() > 1 ? (courseCartDtoState.GetCart()?.Sum(course => course.Price) * (1 - 0.05m))?.ToString("#,0.00") : (courseCartDtoState.GetCart()?.Sum(course => course.Price))?.ToString("#,0.00")) &nbsp; DOP$</strong>
+            <button @onclick="@(()=>navigationManager.NavigateTo("/checkout"))" class="btn btn-info form-control text-white fs-5"><strong>Pagar</strong></button>
+            <hr />
+    </div>
+    </div>
+</div>
+
+
+
+@code {
+    private List<CourseCartDTO> courseCarts = new List<CourseCartDTO>();
+
+    protected override void  OnInitialized()
+    {
+        courseCartDtoState.StateChangeHandler += OnCourseCartDtoStateChange!;
+    }
+
+
+
+
+
+
+
+    void OnCourseCartDtoStateChange(object sender, EventArgs e) => StateHasChanged();
+
+    void IDisposable.Dispose()
+    {
+        courseCartDtoState.StateChangeHandler -= OnCourseCartDtoStateChange!;
+
+    }
+
+    private async void OnClickDeleteHandler(int id)
+    {
+        await JsRuntime.InvokeVoidAsync("RemoveCartItem", id);
+        await UpdateCart();
+    }
+
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await UpdateCart();
+
+        }
+
+    }
+
+
+    private async Task UpdateCart()
+    {
+        var cart = await JsRuntime.InvokeAsync<string>("localStorage.getItem", "cart") ?? null;
+
+        if (cart != null && cart != "[]" )
+        {
+            cartState.cart = JsonConvert.DeserializeObject<List<int>>(cart) ?? new List<int>();
+            cartState.SetCart();
+            courseCartDtoState.cart = await courseRepository.GetCourseCarts(cartState.GetCart());
+            courseCartDtoState.SetCart();
+        }
+        else
+        {
+            cartState.cart = JsonConvert.DeserializeObject<List<int>>(cart?? "[]") ?? new List<int>();
+            cartState.SetCart();
+            courseCartDtoState.cart = new List<CourseCartDTO>();
+            courseCartDtoState.SetCart();
+        }
+    }
+}

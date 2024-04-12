@@ -1,0 +1,146 @@
+﻿@page "/admin/updateTeacher/{Id:int}"
+
+
+
+@inject ITeacherRepository teacherRepository
+@inject IJSRuntime JsRuntime
+@inject NavigationManager navigationManager
+
+@attribute [Authorize(Roles = "admin")]
+
+
+<h3 class="text-center mt-4">Update Teacher</h3>
+
+<div class="container mb-5 mt-2 ">
+    <div class="card shadow-lg ">
+
+
+        <div class="card-header fs-4 fw-bold">
+
+            Edit Teacher
+        </div>
+
+
+        <div class="card-body">
+
+
+            <EditForm Model="teacher" OnValidSubmit="OnSubmit">
+                <DataAnnotationsValidator></DataAnnotationsValidator>
+                <div class="mb-3 ">
+                    <label for="Name" class="form-label">Name</label>
+                    <InputText @bind-Value="teacher.Name" type="text" class="form-control" id="Name" placeholder="Teacher name"></InputText>
+                    <ValidationMessage class="text-danger form-text" For="() => teacher.Name"></ValidationMessage>
+                </div>
+
+
+                <div class="mb-3 ">
+                    <label for="Email" class="form-label">Email</label>
+                    <InputText type="email" @bind-Value="teacher.Email" class="form-control" id="Email" placeholder="example@example.com"></InputText>
+
+                    <ValidationMessage class="text-danger form-text" For="() => teacher.Email"></ValidationMessage>
+                </div>
+
+                <div class="mb-3 ">
+                    <label for="Phone" class="form-label">Phone</label>
+                    <InputText type="tel" @bind-Value="teacher.Phone" class="form-control" id="Phone" placeholder="0000000000"></InputText>
+
+                    <ValidationMessage class="text-danger form-text" For="() => teacher.Phone"></ValidationMessage>
+                </div>
+
+                <div class="mb-3">
+                    <label for="Description" class="form-label">Description</label>
+                    <RadzenHtmlEditor @bind-Value="teacher.Description" type="text" class="form-control" id="Description" placeholder="A little description of the teacher"></RadzenHtmlEditor>
+                    <ValidationMessage class="text-danger form-text" For="() => teacher.Description"></ValidationMessage>
+                </div>
+
+                <div class="mb-3">
+                    <label for="Password" class="form-label">Password</label>
+                    <InputText type="password" @bind-Value="teacher.Password" class="form-control" id="Password" @oninput="()=>OnChangePassword()"></InputText>
+                    <ValidationMessage class="text-danger form-text" For="() => teacher.Password"></ValidationMessage>
+                </div>
+
+                <div class="mb-3 ">
+                    <label for="Facebook" class="form-label">Facebook</label>
+                    <InputText @bind-Value="teacher.Facebook" type="text" class="form-control" id="Facebook" placeholder="Teacher Facebook"></InputText>
+                    <span class="form-text">Not Required</span>
+                    <ValidationMessage class="text-danger form-text" For="() => teacher.Facebook"></ValidationMessage>
+                </div>
+                <div class="mb-3 ">
+                    <label for="LinkedIn" class="form-label">LinkedIn</label>
+                    <InputText @bind-Value="teacher.LinkedIn" type="text" class="form-control" id="LinkedIn" placeholder="Teacher LinkedIn"></InputText>
+                    <span class="form-text">Not Required</span>
+                    <ValidationMessage class="text-danger form-text" For="() => teacher.LinkedIn"></ValidationMessage>
+                </div>
+                <div class="mb-3 ">
+                    <label for="X" class="form-label">X</label>
+                    <InputText @bind-Value="teacher.X" type="text" class="form-control" id="X" placeholder="Teacher X"></InputText>
+                    <span class="form-text">Not Required</span>
+                    <ValidationMessage class="text-danger form-text" For="() => teacher.X"></ValidationMessage>
+                </div>
+                <div class="mb-3 ">
+                    <label for="Instagram" class="form-label">Instagram</label>
+                    <InputText @bind-Value="teacher.Instagram" type="text" class="form-control" id="Instagram" placeholder="Teacher Instagram"></InputText>
+                    <span class="form-text">Not Required</span>
+                    <ValidationMessage class="text-danger form-text" For="() => teacher.Instagram"></ValidationMessage>
+                </div>
+                <div class="mb-3 ">
+                    <label for="Youtube" class="form-label">Youtube</label>
+                    <InputText @bind-Value="teacher.Youtube" type="text" class="form-control" id="Youtube" placeholder="Teacher Youtube"></InputText>
+                    <span class="form-text">Not Required</span>
+                    <ValidationMessage class="text-danger form-text" For="() => teacher.Youtube"></ValidationMessage>
+                </div>
+
+
+                <button type="submit" class="btn btn-info text-white py-2 form-control fw-bold fs-5 my-1">Update Teacher</button>
+            </EditForm>
+
+        </div>
+
+
+
+    </div>
+
+
+</div>
+
+
+@code {
+    private FormTeacherDTO teacher = new FormTeacherDTO();
+
+    [Parameter]
+    public int Id { get; set; }
+
+    public bool passwordChange { get; set; } = false;
+
+    protected async override Task OnInitializedAsync()
+    {
+        teacher = await teacherRepository.GetTeacher(Id);
+    }
+
+    private async Task OnSubmit()
+    {
+
+        var isUpdated= await teacherRepository.UpdateTeacher(teacher, passwordChange);
+
+        if (isUpdated)
+        {
+            await JsRuntime.InvokeVoidAsync("showToastr", "success", "Profesor Actualizado Correctamente");
+
+            navigationManager.NavigateTo("/admin/teachers");
+
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync("showToastr", "error", "Favor llenar los campos correctamente y no duplicar datos");
+        }
+
+
+    }
+
+    private void OnChangePassword()
+    {
+        passwordChange = true;
+    }
+
+
+}

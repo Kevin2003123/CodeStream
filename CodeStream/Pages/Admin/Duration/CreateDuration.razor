@@ -1,0 +1,74 @@
+﻿@page "/admin/createDuration"
+
+
+@inject IDurationRepository durationRepository
+@inject IJSRuntime JsRuntime
+@inject NavigationManager navigationManager
+
+@attribute [Authorize(Roles = "admin")]
+
+
+<h3 class="text-center mt-4">Create Duration</h3>
+
+<div class="container mb-5 mt-2 ">
+    <div class="card shadow-lg ">
+
+
+        <div class="card-header fs-4 fw-bold">
+
+            New Duration
+        </div>
+
+
+        <div class="card-body">
+
+
+            <EditForm Model="duration" OnValidSubmit="OnSubmit">
+                <DataAnnotationsValidator></DataAnnotationsValidator>
+                <div class="mb-3 ">
+                    <label for="Name" class="form-label">Name</label>
+                    <InputText @bind-Value="duration.Name" type="text" class="form-control" id="Name" placeholder="Duration name"></InputText>
+                    <ValidationMessage class="text-danger form-text" For="() => duration.Name"></ValidationMessage>
+                </div>
+
+
+              
+
+                <button type="submit" class="btn btn-info text-white py-2 form-control fw-bold fs-5 my-1">Create Duration</button>
+            </EditForm>
+
+        </div>
+
+
+
+    </div>
+
+
+</div>
+
+
+@code {
+    private FormDurationDTO duration = new FormDurationDTO();
+
+
+    private async Task OnSubmit()
+    {
+
+        var isCreated = await durationRepository.CreateDuration(duration);
+        if (isCreated)
+        {
+            await JsRuntime.InvokeVoidAsync("showToastr", "success", "Duracion Creada Correctamente");
+
+            navigationManager.NavigateTo("/admin/durations");
+
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync("showToastr", "error", "Favor llenar los campos correctamente y no duplicar datos");
+        }
+
+
+    }
+
+
+}

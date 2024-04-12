@@ -1,0 +1,75 @@
+﻿@page "/invoice/{Id:int}"
+@inject IPaymentRepository paymentRepository
+
+@inject CourseCartDtoState courseCartDtoState
+
+
+@if (invoice != null && invoice.Any())
+{
+    <div class="container my-5">
+
+        <h1 class="text-center my-5">Invoice Detail</h1>
+        <div class="row justify-content-center mb-5">
+            <div class="col-md-6 text-center">
+                <img src="/assets/logo.png" alt="CodeSteam Logo" width="70" />
+                <h2 class="mt-3">CodeSteam</h2>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header fs-3 fw-bold">
+                Invoice Details
+            </div>
+            <div class="card-body">
+                <p><strong>Order Number:</strong> @Id</p>
+                <p><strong>Customer:</strong> @invoice.FirstOrDefault()?.UserName</p>
+                <p><strong>Payment Method:</strong> Credit Card</p>
+                <hr />
+                <table class="table ">
+                    <thead>
+                        <tr>
+                            <th>Course</th>
+                            <th>Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in invoice)
+                        {
+                            <tr>
+                                <td>@item.Name</td>
+                                <td>@item.Price.ToString("#,0.00")</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="mt-5">
+                        <tr>
+                            <td><strong>Discount:</strong></td>
+                            <td>@(invoice.Count() > 1 ? (invoice.FirstOrDefault()!.TotalPrice * 0.05m).ToString("#,0.00") : 0.00m)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total:</strong></td>
+                            <td><strong>@invoice.FirstOrDefault()?.TotalPrice.ToString("#,0.00")&nbsp;DOP$</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <p>No invoice found for ID: @Id</p>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+
+    private List<Invoice> invoice = new List<Invoice>();
+
+    protected async override Task OnInitializedAsync()
+    {
+        invoice = await paymentRepository.GetInvoice(Id);
+
+    }
+}

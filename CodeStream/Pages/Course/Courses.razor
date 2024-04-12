@@ -1,0 +1,298 @@
+﻿@page "/courses"
+@using Newtonsoft.Json
+@inject IJSRuntime JsRuntime
+@inject ICourseRepository courseRepository
+@inject SearchState searchState
+@inject CourseListDTOState courseListDTOState
+@inject ISkillRepository skillRepository
+@inject IDurationRepository durationRepository
+@inject ILevelRepository levelRepository
+@inject CourseFilterState courseFilterState
+@inject FilterState filterState
+@inject NavigationManager navigationManager
+@inject CartState cartState
+@implements IDisposable
+
+
+<h3 class="text-center mt-4">Lista de Cursos</h3>
+<div class="container">
+<main class="row ">
+
+
+        <aside class="col-2 bg-dark-subtle">
+    <div class="mt-2">
+
+        
+        <h6>Duracion</h6>
+
+                @foreach (var duration in filterState.GetDuration())
+                {
+                    <div class="form-check">
+                       <input @onchange="(e)=>DurationHandler(duration.Id, e)" class="form-check-input" type="checkbox" value="@duration.Id" id="flexCheckDefault">
+                        <label class="form-check-label" for="flexCheckDefault">
+                            @duration.Name
+                        </label>
+                    </div>
+                } 
+    </div>
+
+     <div class="mt-4">
+        <h6>Nivel</h6>
+         @foreach (var level in filterState.GetLevel())
+                {
+                    <div class="form-check">
+                        <input @onchange="(e)=>LevelHandler(level.Id, e)" class="form-check-input" type="checkbox" value="@level.Id" id="flexCheckDefault">
+                        <label class="form-check-label" for="flexCheckDefault">
+                            @level.Name
+                        </label>
+                    </div>
+                    
+                }
+             
+    </div>
+
+
+            <div class="mt-4">
+                <h6>Habilidades</h6>
+
+                <!-- Mostrar las primeras cuatro habilidades directamente -->
+                @foreach (var skill in filterState.GetSkill().Take(4))
+                {
+                    <div class="form-check">
+                        <input @onchange="(e)=>SkillHandler(skill.Id, e)" class="form-check-input" type="checkbox" value="@skill.Id" id="flexCheckDefault">
+                        <label class="form-check-label" for="flexCheckDefault">
+                            @skill.Name
+                        </label>
+                    </div>
+                }
+
+                <!-- Colapsable -->
+                <div id="additionalSkills" class="collapse">
+                    <!-- Mostrar las habilidades restantes dentro del colapsable -->
+                    @foreach (var skill in filterState.GetSkill().Skip(4))
+                    {
+                        <div class="form-check">
+                            <input @onchange="(e)=>SkillHandler(skill.Id, e)" class="form-check-input" type="checkbox" value="@skill.Id" id="flexCheckDefault">
+                            <label class="form-check-label" for="flexCheckDefault">
+                                @skill.Name
+                            </label>
+                        </div>
+                    }
+                </div>
+
+                <!-- Botón Ver Más -->
+                <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#additionalSkills" aria-expanded="false" aria-controls="additionalSkills">
+                    Ver más
+                </button>
+            </div>
+
+
+
+
+
+        </aside>
+
+        <section class="row col m-3" id="CoursesList">
+
+
+    @foreach (var course in @courseListDTOState.courseListDTOs)
+    {
+                <div class="card shadow-lg p-2 col-4 m-2 " style="width: 20rem;" >
+                    <img src="@course.Image" class="card-img-top img-fluid cursor-pointer" alt=@($"CourseImage{course.Id}") @onclick="()=>OnClickCourseHandler(course.Id)">
+            <div class="card-body">
+                <h5 class="card-title">@course.Name</h5>
+                <p class="card-text">@course.Description</p>
+               
+            </div>
+                    <div class="card-footer bg-white fs-6 ">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">@course.Level</li>
+                            <li class="list-group-item">@course.Duration</li>
+                            <li class="list-group-item"><NavLink href="@($"/teacherDetail/{course.TeacherId}")">@course.TeacherName</NavLink></li>
+                            <li @onclick="()=>OnclickAddCartHandler(course.Id)"  class="btn btn-info">Añadir a la cesta</li>
+                        </ul>
+            </div>
+        </div>
+                
+    }
+            <nav aria-label="Page navigation example" class="row mt-3">
+                <ul class="pagination me-auto col-4 offset-4">
+                    <li @onclick=PrevPageHandler class=" cursor-pointer"><a class="page-link">Previous</a></li>
+                    <li class="page-item"><a class="page-link"> @courseFilterState.page </a></li>
+                    <li @onclick=NextPageHandler class=" cursor-pointer"><a class="page-link">Next</a></li>
+                </ul>
+            </nav>
+    
+</section>
+
+</main>
+
+   
+</div>
+
+
+
+
+@code {
+    private List<CourseLevel> courseLevels { get; set; } = new List<CourseLevel>();
+    private List<CourseDuration> courseDurations { get; set; } = new List<CourseDuration>();
+    private List<Skill> skills { get; set; } = new List<Skill>();
+
+
+   
+
+    protected override void OnInitialized()
+    {
+        courseListDTOState.StateChangeHandler += OnCourseListDTOChange!;
+        filterState.StateChangeHandler += OnFilterStateChange!;
+        courseFilterState.StateChangeHandler += OnCourseFilterStateChange!;
+    }
+  
+        
+
+    protected override async void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            filterState.Level = await levelRepository.GetCourseLevels();
+            filterState.Duration = await durationRepository.GetCourseDurations();
+            filterState.Skill = await skillRepository.GetSkills();
+            filterState.SetFilter();
+            await UpdateCourseList();
+        }
+    }
+
+
+    private async void PrevPageHandler()
+    {
+        if (courseFilterState.page > 1)
+        {
+            courseFilterState.page--;
+        }
+        await UpdateCourseList();
+    } 
+
+    private async void NextPageHandler()
+    {
+        List<int> levels = courseFilterState.GetLevel();  // Niveles de curso
+        List<int> skills = courseFilterState.GetSkill();       // Habilidades requeridas
+        List<int> durations = courseFilterState.GetDuration();
+        string searchTerm = searchState.search;                   // Término de búsqueda por nombre
+
+        var courses = await courseRepository.GetPaginationFilterCourses(durations, levels, skills, searchTerm, courseFilterState.page + 1, 9);
+        if (courses.Count > 0)
+        {
+            courseFilterState.page++;
+            await UpdateCourseList();
+        }
+
+
+
+    }
+
+    private async void DurationHandler(int id, ChangeEventArgs e)
+    {
+        var isChecked = e.Value ?? false;
+        var duration = id;
+        if ((bool)isChecked)
+        {
+            courseFilterState.Duration.Add(id);
+            courseFilterState.SetFilter();
+
+
+        }
+        else
+        {
+            courseFilterState.Duration.Remove(id);
+            courseFilterState.SetFilter();
+
+        }
+
+        courseFilterState.page = 1;
+        await UpdateCourseList();
+    }
+
+    private async void LevelHandler(int id, ChangeEventArgs e)
+    {
+        var isChecked = e.Value ?? false;
+        if ((bool)isChecked)
+        {
+            courseFilterState.Level.Add(id);
+            courseFilterState.SetFilter();
+
+
+        }
+        else
+        {
+            courseFilterState.Level.Remove(id);
+            courseFilterState.SetFilter();
+
+        }
+        courseFilterState.page = 1;
+        await UpdateCourseList();
+
+    }
+
+    private async void SkillHandler(int id, ChangeEventArgs e)
+    {
+        var isChecked = e.Value ?? false;
+
+        if ((bool)isChecked)
+        {
+            courseFilterState.Skill.Add(id);
+            courseFilterState.SetFilter();
+
+
+        }
+        else
+        {
+            courseFilterState.Skill.Remove(id);
+            courseFilterState.SetFilter();
+
+        }
+        courseFilterState.page = 1;
+        await UpdateCourseList();
+
+    }
+
+
+    private async Task UpdateCourseList()
+    {
+        List<int> levels = courseFilterState.GetLevel();  // Niveles de curso
+        List<int> skills = courseFilterState.GetSkill();       // Habilidades requeridas
+        List<int> durations = courseFilterState.GetDuration();
+        string searchTerm = searchState.search;                   // Término de búsqueda por nombre
+
+        var courses = await courseRepository.GetPaginationFilterCourses(durations, levels, skills, searchTerm, courseFilterState.page, 9);
+        courseListDTOState.courseListDTOs = courses.ToList();
+        courseListDTOState.SetCourseListDTOs();
+
+    }
+
+    private void OnClickCourseHandler(int Id)
+    {
+        navigationManager.NavigateTo($"/course-detail/{Id}");
+    }
+
+    void OnCourseListDTOChange(object sender, EventArgs e) => StateHasChanged();
+    void OnFilterStateChange(object sender, EventArgs e) => StateHasChanged();
+    void OnCourseFilterStateChange(object sender, EventArgs e) => StateHasChanged();
+    void IDisposable.Dispose()
+    {
+        courseListDTOState.StateChangeHandler -= OnCourseListDTOChange!;
+        filterState.StateChangeHandler -= OnFilterStateChange!;
+        courseFilterState.StateChangeHandler -= OnCourseFilterStateChange!;
+    }
+
+
+    private async Task OnclickAddCartHandler(int courseId)
+    {
+
+
+
+        await JsRuntime.InvokeVoidAsync("AddToCart", courseId);
+        var cart = await JsRuntime.InvokeAsync<string>("localStorage.getItem", "cart");
+        cartState.cart = JsonConvert.DeserializeObject<List<int>>(cart) ?? new List<int>();
+        cartState.SetCart();
+    }
+}

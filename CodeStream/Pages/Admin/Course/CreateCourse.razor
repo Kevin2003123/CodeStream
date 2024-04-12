@@ -1,0 +1,512 @@
+﻿@page "/admin/createCourse"
+
+@inject ITeacherRepository teacherRepository
+@inject IDurationRepository durationRepository
+@inject ISkillRepository skillRepository
+@inject ISubidaArchivo SubidaArchivo
+@inject IJSRuntime JsRuntime
+@inject NavigationManager navigationManager
+@inject ICourseRepository courseRepository
+@inject IClassDayRepository classDayRepository
+@inject IClassWeekRepository classWeekRepository
+@inject ILevelRepository levelRepository
+@attribute [Authorize(Roles = "admin")]
+<h3 class="text-center mt-4">Create Course</h3>
+
+<div class="container mb-5 mt-2 ">
+    <div class="card shadow-lg ">
+
+
+        <div class="card-header fs-4 fw-bold">
+
+            New Course
+        </div>
+
+
+        <div class="card-body">
+
+
+            <EditForm Model="course" OnValidSubmit="OnSubmit">
+                <DataAnnotationsValidator></DataAnnotationsValidator>
+                <div class="mb-3 ">
+                    <label for="Name" class="form-label">Name</label>
+                    <InputText @bind-Value="course.Name" type="text" class="form-control" id="Name" placeholder="Course name"></InputText>
+                    <ValidationMessage class="text-danger form-text" For="() => course.Name"></ValidationMessage>
+                </div>
+
+
+                <div class="mb-3 ">
+                    <label for="Image" class="form-label">Image</label>
+                    <InputFile @bind-Value="course.Image" OnChange="OnChangeFile" class="form-control" id="Image" PreviewImage="@previewImage"></InputFile>
+                    <div class="row">
+                        @if (estaIniciadoProcesoSubidaImagen)
+                        {
+                            <div class="col-md-12">
+                                <span><i class="fa-solid fa-arrow-rotate-right"></i> Wait while the image is load...</span>
+                            </div>
+                        }
+
+                        @if (course.Image != null && course.Image != string.Empty)
+                        {
+                            <div class="col mt-3 ">
+                                <img class="img-fluid border border-5 border-success rounded" width="200" height="150" src="@course.Image" />
+                            </div>
+                        }
+
+                    </div>
+                    <ValidationMessage class="text-danger form-text" For="() => course.Image"></ValidationMessage>
+                </div>
+
+                <div class="mb-3">
+                    <label for="Description" class="form-label">Description</label>
+                    <InputTextArea @bind-Value="course.Description" type="text" class="form-control" id="Description" placeholder="A little description of the course"></InputTextArea>
+                    <ValidationMessage class="text-danger form-text" For="() => course.Description"></ValidationMessage>
+                </div>
+
+                <div class="mb-3">
+                    <label for="Description2" class="form-label">Description 2</label>
+                    <RadzenHtmlEditor @bind-Value="course.Description2" class="form-control" id="Description2" placeholder="A more elaborate description"></RadzenHtmlEditor>
+                    <ValidationMessage class="text-danger form-text" For="() => course.Description2"></ValidationMessage>
+                </div>
+
+
+                <div class="mb-3">
+                    <label for="Price" class="form-label">Price</label>
+                    <InputNumber @bind-Value="course.Price" class="form-control" id="Price" placeholder="12000.00"></InputNumber>
+                    <ValidationMessage class="text-danger form-text" For="() => course.Price"></ValidationMessage>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label for="StartDate" class="form-label">Start Date</label>
+                        <InputDate @bind-Value="course.StartDate" class="form-control" id="StartDate"></InputDate>
+                        <ValidationMessage class="text-danger form-text" For="() => course.StartDate"></ValidationMessage>
+                    </div>
+
+                    <div class="col">
+                        <label for="EndDate" class="form-label">End Date</label>
+                        <InputDate @bind-Value="course.EndDate" class="form-control" id="EndDate"></InputDate>
+                        <ValidationMessage class="text-danger form-text" For="() => course.EndDate"></ValidationMessage>
+                    </div>
+                </div>
+
+
+                <div class="mb-3 ">
+                    <label for="Duration" class="form-label">Duration</label>
+                    <InputSelect class="form-select" id="Duration" @bind-Value="course.CourseDurationId">
+                        <option value="0"> Select a Duration...</option>
+                        @foreach (var x in duration)
+                        {
+                            <option value="@x.Id">@x.Name</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage class="text-danger form-text" For="() => course.CourseDurationId"></ValidationMessage>
+                </div>
+
+                <div class="mb-3 ">
+                    <label for="Teacher" class="form-label">Teacher</label>
+                    <InputSelect class="form-select" id="Teacher" @bind-Value="course.TeacherId">
+                        <option value="0"> Select a Teacher...</option>
+                        @foreach (var x in teachers)
+                        {
+                            <option value="@x.Id">@x.Name</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage class="text-danger form-text" For="() => course.TeacherId"></ValidationMessage>
+                </div>
+
+                <div class="mb-3 ">
+                    <label for="Level" class="form-label">Level</label>
+                    <InputSelect class="form-select" id="Level" @bind-Value="course.CourseLevelId">
+                        <option value="0"> Select a Level...</option>
+                        @foreach (var x in courseLevels)
+                        {
+                            <option value="@x.Id">@x.Name</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage class="text-danger form-text" For="() => course.CourseLevelId"></ValidationMessage>
+                </div>
+
+                <div class="mb-3 row">
+
+                    <label for="Skill" class="form-label">Skills</label>
+                    <div class="col-8">
+
+
+                        <select class="form-select" id="Skill" @onchange="OnchangeSelectSkill">
+                            <option value="0">select a skill...</option>
+                            @foreach (var x in skillSelect)
+                            {
+                                <option value="@x.Id">@x.Name</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col my-auto">
+                        <button type="button" class="btn btn-primary form-control" @onclick="OnClickAddSkill">Add Skill</button>
+                    </div>
+
+                </div>
+               @if (selectedSkills.Count == 0 )
+                {
+                    <span class="text-danger form-text">Add at least one skill</span>
+                } 
+
+                <div class="mb-3">
+                    <div class="d-flex">
+                        @foreach (var x in selectedSkills)
+                        {
+                            <div class="btn btn-info ms-2">
+                                <div class="d-flex">
+
+                                    <span>
+                                        @x.Name
+                                    </span>
+
+                                    &nbsp;
+                                    <span class="" style="cursor: pointer;" @onclick="()=>OnClickRemoveSkill(x.Id)">
+                                        <i class="fas fa-times"></i> <!-- Icono de Font Awesome -->
+                                    </span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+
+                <div>
+
+                    <label class="form-label fs-4 fw-bold">Calendar</label>
+                    @if (classDay.Count == 0)
+                    {
+                        <p class="text-danger form-text">Add at least one Class Day in the calendar</p>
+                    }
+                    <table class="table table-group-divider mt-3">
+                        <thead>
+                            <tr class="text-center">
+                                @foreach (var w in weekDays)
+                                {
+                                    <th>@w.Name</th>
+                                }
+
+
+                            </tr>
+                        </thead>
+                        <tbody class="text-center">
+                            <tr>
+                                @foreach (var w in weekDays)
+                                {
+                                    <td><input class="form-control" id="@("start" + w.Id)" type="time" @onchange="@((e)=>OnChangeClassHour(e,w.Id,"start"))" /> </td>
+                                }
+
+
+                            </tr>
+                            <tr>
+                                @foreach (var w in weekDays)
+                                {
+                                    <td> <input class="form-control" id="@("end" + w.Id)" type="time" @onchange="@((e)=>OnChangeClassHour(e,w.Id,"end"))" /></td>
+                                }
+
+
+                            </tr>
+                            <tr>
+                                @foreach (var w in weekDays)
+                                {
+                                    <td> <button @onclick="()=>OnClickRemoveHours(w.Id)" type="button" class="btn btn-danger form-control">Clear</button></td>
+                                }
+
+                            </tr>
+                        </tbody>
+                    </table>
+
+                </div>
+
+                <button type="submit" class="btn btn-info text-white py-2 form-control fw-bold fs-5 my-1">Create Course</button>
+            </EditForm>
+
+        </div>
+
+
+
+    </div>
+
+
+</div>
+
+@code {
+    private FormCourseDTO course = new FormCourseDTO();
+    private List<FormCourseSkillDTO> courseSkills = new List<FormCourseSkillDTO>();
+    private List<GetSelectListTeacherDTO> teachers = new List<GetSelectListTeacherDTO>();
+    private List<Skill> skillSelect = new List<Skill>();
+    private List<Skill> selectedSkills = new List<Skill>();
+    private List<CourseDuration> duration = new List<CourseDuration>();
+    private Skill skill = new Skill();
+    private string previewImage = string.Empty;
+    private bool estaIniciadoProcesoSubidaImagen { get; set; } = false;
+    private List<ClassDay> classDay = new List<ClassDay>();
+    private List<WeekDay> weekDays = new List<WeekDay>();
+    private List<CourseLevel> courseLevels = new List<CourseLevel>();
+
+    protected async override Task OnInitializedAsync()
+    {
+        teachers = await teacherRepository.GetSelectListTeacherDTO();
+        skillSelect = await skillRepository.GetSkills();
+        duration = await durationRepository.GetCourseDurations();
+        weekDays = await classWeekRepository.GetAll();
+        courseLevels = await levelRepository.GetCourseLevels();
+    }
+
+   
+
+    private void OnClickRemoveSkill(int id)
+    {
+        var itemToRemove = selectedSkills.FirstOrDefault(item => item.Id == id);
+
+        if(itemToRemove != null)
+        {
+            selectedSkills.Remove(itemToRemove);
+        }
+
+    }
+
+    private async Task OnClickRemoveHours(int weekId)
+    {
+        var existingClassDay = classDay.FirstOrDefault(cd => cd.ClassWeekId == weekId);
+
+        if (existingClassDay!= null )
+        {
+            classDay.Remove(existingClassDay);
+            await JsRuntime.InvokeVoidAsync("ClearHours", $"start{weekId}");
+            await JsRuntime.InvokeVoidAsync("ClearHours", $"end{weekId}");
+        }
+
+
+    }
+
+    private async Task OnChangeClassHour(ChangeEventArgs e, int weekId, string hourType)
+    {
+        // Obtener el valor del campo de entrada de tiempo
+        var inputValue = e.Value?.ToString();
+
+        // Verificar si el valor ingresado está vacío o nulo
+        if (string.IsNullOrWhiteSpace(inputValue))
+        {
+            // Si el valor está vacío o nulo, eliminar el elemento de la lista classDay correspondiente a weekId y hourType
+            var itemToRemove = classDay.FirstOrDefault(cd => cd.ClassWeekId == weekId );
+
+            if (itemToRemove != null)
+            {
+                if (hourType == "start")
+                {
+                    itemToRemove.StartHour = null;
+                    await JsRuntime.InvokeVoidAsync("ClearHours", $"start{weekId}");
+                }
+                else if (hourType == "end")
+                {
+                    itemToRemove.EndHour = null;
+                    await JsRuntime.InvokeVoidAsync("ClearHours", $"end{weekId}");
+                }
+                else
+                {
+                    classDay.Remove(itemToRemove);
+                }
+
+            }
+
+            return; // Salir del método ya que no hay necesidad de continuar
+        }
+
+        // Convertir el valor del campo de entrada de tiempo a TimeSpan
+        TimeSpan time;
+        if (TimeSpan.TryParse(inputValue, out time))
+        {
+            // Encontrar si ya existe un ClassDay para el día de la semana
+            var existingClassDay = classDay.FirstOrDefault(cd => cd.ClassWeekId == weekId);
+            if (existingClassDay != null)
+            {
+                // Actualizar las horas de inicio y fin si ya existe un ClassDay para el día de la semana
+                if (hourType == "start")
+                {
+                    existingClassDay.StartHour = time;
+
+                }
+                else if (hourType == "end")
+                {
+                    existingClassDay.EndHour = time;
+
+                }
+            }
+            else
+            {
+                // Si no existe un ClassDay para el día de la semana, crear uno nuevo
+                var newClassDay = new ClassDay
+                    {
+                        ClassWeekId = weekId
+                    };
+
+                // Asignar la hora de inicio o fin según el campo de entrada
+                if (hourType == "start")
+                {
+                    newClassDay.StartHour = time;
+                }
+                else if (hourType == "end")
+                {
+                    newClassDay.EndHour = time;
+                }
+
+                // Agregar el nuevo ClassDay a la lista
+                classDay.Add(newClassDay);
+            }
+        }
+    }
+
+    private void OnClickAddSkill()
+    {
+
+        var isExist = selectedSkills.Exists(s => s.Id == skill.Id);
+
+        if (!isExist && skill.Id != 0)
+        {
+            selectedSkills.Add(skill);
+        }
+
+    }
+
+    private void OnchangeSelectSkill(ChangeEventArgs e)
+    {
+        var skillId = Convert.ToInt32(e.Value);
+
+
+
+        skill = skillSelect.FirstOrDefault(s => s.Id == skillId)!;
+
+
+
+    }
+
+    private async Task BorrarImagen()
+    {
+        try
+        {
+            var nombreImagen = course.Image.Replace($"{navigationManager.BaseUri}CourseImages/", "");
+            var result = SubidaArchivo.BorrarArchivo(nombreImagen);
+            course.Image = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("showToastr", "error", ex.Message);
+            return;
+        }
+    }
+
+    private async Task OnChangeFile(InputFileChangeEventArgs e)
+    {
+        if(course.Image != string.Empty)
+        {
+            await BorrarImagen();
+        }
+        estaIniciadoProcesoSubidaImagen = true;
+        try
+        {
+            // var imagenes = new List<string>();
+
+            // if (e.GetMultipleFiles().Count() > 0)
+            // {
+            //     foreach(var file in e.GetMultipleFiles())
+            //     {
+            //         System.IO.FileInfo fileInfo= new System.IO.FileInfo(file.Name);
+
+            //         if (fileInfo.Extension.ToLower() == ".jpg" || fileInfo.Extension.ToLower() == ".png" || fileInfo.Extension.ToLower() == ".jpeg")
+            //         {
+            //             var uploadImagenPath = await SubidaArchivo.SubirArchivo(file);
+            //         }
+            //     }       
+            // }
+            var imagen = string.Empty;
+            if (e.File != null)
+            {
+                var file = e.File;
+
+                System.IO.FileInfo fileInfo = new System.IO.FileInfo(file.Name);
+
+                if (fileInfo.Extension.ToLower() == ".jpg" || fileInfo.Extension.ToLower() == ".png" || fileInfo.Extension.ToLower() == ".jpeg")
+                {
+                    var uploadImagenPath = await SubidaArchivo.SubirArchivo(file);
+                    imagen = uploadImagenPath;
+                }
+            }
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("showToastr", "error", "Porfavor seleccione unicamente .jpg/ .jpeg/ .png");
+                return;
+            }
+            if (imagen != string.Empty)
+            {
+                if (course.Image != null && course.Image != string.Empty)
+                {
+                    course.Image = imagen;
+
+                }
+                else
+                {
+                    course.Image = string.Empty;
+                    course.Image = imagen;
+
+                }
+            }
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("showToastr", "error", "Fallo en la subida de imagenes");
+                return;
+            }
+            estaIniciadoProcesoSubidaImagen = false;
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+
+    }
+
+    private async  Task OnSubmit()
+    {
+
+        if (selectedSkills.Count() > 0 && classDay.All(cd => cd != null && cd.StartHour != null && cd.EndHour != null))
+        {
+            var courseId = await courseRepository.CreateCourse(course);
+
+            foreach (var s in selectedSkills)
+            {
+                courseSkills.Add(new FormCourseSkillDTO { CourseId = courseId, SkillId = s.Id });
+
+
+            }
+
+            foreach (var cd in classDay)
+            {
+
+                cd.CourseId = courseId;
+
+            }
+
+            await skillRepository.CreateCourseSkill(courseSkills);
+
+
+            await classDayRepository.CreateAllClassDay(classDay);
+
+
+            await JsRuntime.InvokeVoidAsync("showToastr", "success", "Curso Creado Correctamente");
+           
+            navigationManager.NavigateTo("/admin/courses");
+
+
+        }else
+        {
+            await JsRuntime.InvokeVoidAsync("showToastr", "error", "Favor llenar todos los campos");
+        }
+
+
+    }
+
+
+}

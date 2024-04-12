@@ -1,0 +1,78 @@
+﻿@page "/admin/countries"
+@inject ICountryRepository countryRepository
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigationManager
+
+@attribute [Authorize(Roles = "admin")]
+<h3 class="text-center mt-5">Countries</h3>
+
+
+
+<div class="container mb-5">
+    <div class="w-100 d-flex justify-content-end mb-3">
+        <NavLink href="/admin/createCountry" type="button" class="btn btn-info ms-auto"><i class="fa-solid fa-plus"> </i> Add Country </NavLink>
+    </div>
+
+    <table id="adminTable" class="table table-striped" style="width:100%">
+        <thead>
+            <tr>
+                <th class="text-center">Id</th>
+                <th class="text-center">Name</th>
+                <th class="text-center">Active</th>
+                <th class="text-center">Accions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var c in country)
+            {
+                <tr>
+                    <td class="text-center">@c.Id</td>
+                    <td class="text-center">@c.Name</td>
+                    <td class="text-center"><InputCheckbox role="button" @bind-Value=c.Active @onclick="()=>OnchangeCheckbox(c.Active, c.Id)"></InputCheckbox></td>
+                    <td>
+
+                        <div class="text-center">
+                            <i @onclick="@(()=> navigationManager.NavigateTo($"/admin/updateCountry/{c.Id}"))" type="button" class="fa-solid fa-pen-to-square"></i>
+                        </div>
+
+                    </td>
+
+                </tr>
+            }
+        </tbody>
+
+    </table>
+</div>
+
+
+@code {
+    private List<AdminCountryListDTO> country = new List<AdminCountryListDTO>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        country = await countryRepository.GetAdminCountryListDTOs();
+
+
+    }
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+    
+
+        await Task.Delay(100);
+
+        await JSRuntime.InvokeVoidAsync("DataTable");
+
+    }
+
+    private async Task OnchangeCheckbox(bool active, int countryId)
+    {
+
+        var isUpdated = await countryRepository.UpdateActiveStatus(active, countryId);
+        country = await countryRepository.GetAdminCountryListDTOs();
+
+    }
+
+
+}

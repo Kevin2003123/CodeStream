@@ -1,0 +1,324 @@
+﻿
+
+@* <div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">CodeStream</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="oi oi-home" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="counter">
+                <span class="oi oi-plus" aria-hidden="true"></span> Counter
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="fetchdata">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> Fetch data
+            </NavLink>
+        </div>
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}
+ *@
+
+@* <nav class="container-fluid bg-light">
+    <div class="row">
+        <a class="navbar-brand text-info col" href="#">
+            <img src="/assets/logo.png" width="60" />
+            <span class="fw-bold">CodeStream</span>
+        </a>
+
+        <div class="col-6" id="navbarSupportedContent">
+            <form class=" my-2  d-flex ">
+                <input class="form-control mr-2" type="search" placeholder="Search" aria-label="Search">
+                <button class="btn btn-outline-success  mr-2" type="submit">Search</button>
+            </form>
+        </div>
+    </div>
+</nav> *@
+
+@using CodeStream.Pages.Course
+@using Newtonsoft.Json
+@inject SearchState searchState
+@inject CourseListDTOState courseListDTOState
+@inject ICourseRepository courseRepository
+@inject NavigationManager navigationManager
+@inject IJSRuntime JSRuntime
+@inject CourseListDTOState courseListDTOState
+@inject FilterState filterState
+@inject ISkillRepository skillRepository
+@inject IDurationRepository durationRepository
+@inject ILevelRepository levelRepository
+@inject CourseFilterState courseFilterState
+@inject IJSRuntime JsRuntime
+@inject CartState cartState
+@inject AuthenticationStateProvider authStateProvider
+@implements IDisposable
+@if (navigationManager.Uri.Contains("/admin"))
+{
+    <nav class="navbar navbar-expand-lg bg-body-tertiary shadow-lg">
+        <div class="container-fluid">
+
+            <NavLink class="navbar-brand text-info" type="button" onclick="@(()=>navigationManager.NavigateTo("/", true))">
+                <img src="/assets/logo.png" width="60" />
+                <span class="fw-bold">CodeStream</span>
+            </NavLink>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+                <AuthorizeView Roles="admin">
+                    <Authorized>
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                            <li class="nav-item">
+                                <NavLink class="nav-link" href="/admin/courses">Cursos</NavLink>
+                            </li>
+
+                            <li class="nav-item">
+                                <NavLink class="nav-link" href="/admin/teachers">Profesores</NavLink>
+                            </li>
+
+                            <li class="nav-item">
+                                <NavLink class="nav-link" href="/admin/students">Estudiantes</NavLink>
+                            </li>
+                            <li class="nav-item">
+                                <NavLink class="nav-link" href="/admin/skills">Habilidades</NavLink>
+                            </li>
+
+                            <li class="nav-item">
+                                <NavLink class="nav-link" href="/admin/durations">Duraciones</NavLink>
+                            </li>
+
+                            <li class="nav-item">
+                                <NavLink class="nav-link" href="/admin/levels">Niveles</NavLink>
+                            </li>
+
+                            <li class="nav-item">
+                                <NavLink class="nav-link" href="/admin/payments">Pagos</NavLink>
+                            </li>
+
+                            <li class="nav-item">
+                                <NavLink class="nav-link" href="/admin/countries">Paises</NavLink>
+                            </li>
+
+
+                        </ul>
+                    </Authorized>
+                </AuthorizeView>
+               
+
+            </div>
+        </div>
+    </nav>
+
+}
+else
+{
+    <nav class="navbar navbar-expand-lg bg-body-tertiary shadow-lg">
+        <div class="container-fluid">
+            <NavLink class="navbar-brand text-info" type="button" onclick="@(()=>navigationManager.NavigateTo("/", true))">
+                <img src="/assets/logo.png" width="60" />
+                <span class="fw-bold">CodeStream</span>
+            </NavLink>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <NavLink class="nav-link "  href="/" >Home</NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link " href="/courses">Cursos</NavLink>
+                    </li>
+                     <AuthorizeView Roles="student">
+                        <Authorized>
+                    <li class="nav-item">
+                                <NavLink class="nav-link " href=@($"/myCourses/{UserId}")>Mis Cursos</NavLink>
+                    </li>
+                        </Authorized>
+                    </AuthorizeView>
+                  
+                    <AuthorizeView Roles="admin">
+                        <Authorized>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" type="button" onclick="@(()=>navigationManager.NavigateTo("/admin/courses", true))">Admin</NavLink>
+                        </li>
+                        </Authorized>
+                    </AuthorizeView>
+                    
+                   
+                </ul>
+                <form class="d-flex mr-2  mb-lg-0" role="search" @onsubmit="HandleSearch">
+                    <input @bind="search" class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+                    <button class="btn btn-outline-success" type="submit">Search</button>
+                </form>
+
+                <div @onclick="OnClickCart" style="position: relative; display: inline-block; cursor: pointer" class="mx-2  mt-sm-4 mt-lg-0">
+                    <i class="fa-solid fa-cart-shopping fa-2x"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info">
+                        <span class="">@cartState.GetCart().Count()</span>
+                    </span>
+                </div>
+                <AuthorizeView>
+                    <NotAuthorized>
+                        <button onclick=@(()=> navigationManager.NavigateTo("/login")) class="btn btn-light border border-dark mx-2 ">
+                            Inicio de Sesion
+                        </button>
+
+                        <button onclick=@(()=> navigationManager.NavigateTo("/register")) class="btn btn-dark mx-2 ">
+                            Registrarse
+                        </button>
+                    </NotAuthorized>
+
+                    <Authorized>
+
+                        <ul class="navbar-nav mx-lg-2 my-auto">
+                            <li class="nav-item">
+
+                                <span class="nav-link">Bienvenido @context.User.Identity?.Name?.Split(" ")[0]  </span>
+                            </li>
+
+                            <li  class="nav-item">
+
+                                <i @onclick="OnClikLogoOut" role="button" class=" nav-link fa-solid fa-right-from-bracket fa-2x"></i>
+                            </li>
+                        </ul>
+                        
+                    </Authorized>
+                </AuthorizeView>
+              
+
+
+            </div>
+        </div>
+    </nav>
+
+    @code {
+
+    private string search = string.Empty;
+    private string UserId { get; set; } = string.Empty; 
+    private List<CourseCart> courseCarts = new List<CourseCart>();
+
+    private List<int> cartList = new List<int>();
+
+    private void OnClickCart()
+    {
+        navigationManager.NavigateTo("/cart");
+    }
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var cart = await JsRuntime.InvokeAsync<string>("localStorage.getItem", "cart") ?? null;
+
+            if (cart != null)
+            {
+                cartState.cart = JsonConvert.DeserializeObject<List<int>>(cart) ?? new List<int>();
+                cartState.SetCart();
+            }
+        }
+
+    }
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        cartState.StateChangeHandler += OnCartStateChange!;
+        var authenticationState = await authStateProvider.GetAuthenticationStateAsync();
+        var user = authenticationState.User;
+        UserId = user.FindFirst(ClaimTypes.Sid)?.Value!;
+
+    }
+
+  
+
+
+
+    void OnCartStateChange(object sender, EventArgs e) => StateHasChanged();
+
+    void IDisposable.Dispose()
+    {
+        cartState.StateChangeHandler -= OnCartStateChange!;
+
+    }
+
+    private async Task OnClikLogoOut()
+    {
+        var customAuthStateProvider = (CustomAuthenticationStateProvider)authStateProvider;
+        await customAuthStateProvider.UpdateAuthenticationState(null!);
+        navigationManager.NavigateTo("/", true);
+    } 
+
+    private async Task UpdateCourseList()
+    {
+        List<int> levels = new List<int> { 1, 2, 3, 4 };  // Niveles de curso
+        List<int> skills = new List<int> { 1, 2, 2, 3, 4, 5, 6 };       // Habilidades requeridas
+        List<int> durations = new List<int> { 1, 2, 3, 4 }; // Duraciones de curso
+        string searchTerm = searchState.search;                   // Término de búsqueda por nombre
+
+        var courses = await courseRepository.GetPaginationFilterCourses(durations, levels, skills, searchTerm, 1, 9);
+        courseListDTOState.courseListDTOs = courses.ToList();
+    }
+    private async Task HandleSearch()
+    {
+        searchState.search = search;
+
+        await UpdateCourseList();
+        courseListDTOState.SetCourseListDTOs();
+
+        var currentPage = navigationManager.Uri;
+        var coursesPage = $"{navigationManager.BaseUri}courses";
+
+        if (currentPage != coursesPage)
+        {
+            navigationManager.NavigateTo("/courses");
+        }
+        resetFilter();
+
+
+    }
+
+    private async void resetFilter()
+    {
+
+        filterState.Level = new List<CourseLevel>();
+        filterState.Duration = new List<CourseDuration>();
+        filterState.Skill = new List<Skill>();
+        filterState.SetFilter();
+        filterState.Level = await levelRepository.GetCourseLevels();
+        filterState.Duration = await durationRepository.GetCourseDurations();
+        filterState.Skill = await skillRepository.GetSkills();
+        courseFilterState.Duration = new List<int>();
+        courseFilterState.Skill = new List<int>();
+        courseFilterState.Level = new List<int>();
+        courseFilterState.page = 1;
+        courseFilterState.SetFilter();
+
+        filterState.SetFilter();
+    }
+}
+
+}
