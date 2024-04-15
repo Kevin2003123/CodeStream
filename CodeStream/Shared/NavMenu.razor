@@ -147,15 +147,15 @@ else
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <NavLink class="nav-link "  href="/" >Home</NavLink>
+                        <NavLink class="nav-link " Match="NavLinkMatch.All" href="/">Home</NavLink>
                     </li>
                     <li class="nav-item">
-                        <NavLink class="nav-link " href="/courses">Cursos</NavLink>
+                        <NavLink class="nav-link " Match="NavLinkMatch.All" href="/courses">Cursos</NavLink>
                     </li>
                      <AuthorizeView Roles="student">
                         <Authorized>
                     <li class="nav-item">
-                                <NavLink class="nav-link " href=@($"/myCourses/{UserId}")>Mis Cursos</NavLink>
+                                <NavLink class="nav-link " Match="NavLinkMatch.All" href=@($"/myCourses/{UserId}")>Mis Cursos</NavLink>
                     </li>
                         </Authorized>
                     </AuthorizeView>
