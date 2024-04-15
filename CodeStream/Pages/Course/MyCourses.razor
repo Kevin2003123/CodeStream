@@ -97,7 +97,7 @@
             @foreach (var course in courses)
             {
                 <div class="card shadow-lg p-2 col-4 m-2 " style="width: 20rem;">
-                    <img src="@course.Image" class="card-img-top img-fluid cursor-pointer" alt=@($"CourseImage{course.Id}") @onclick="()=>OnClickCourseHandler(course.Id)">
+                    <img role="button" src="@course.Image" class="card-img-top img-fluid cursor-pointer" alt=@($"CourseImage{course.Id}") @onclick="()=>OnClickCourseHandler(course.Id)">
                     <div class="card-body">
                         <h5 class="card-title">@course.Name</h5>
                         <p class="card-text">@course.Description</p>
